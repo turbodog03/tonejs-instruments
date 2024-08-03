@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+  <!-- TODO：如果缩放过小，会出现显示错误。加个检测/提醒之类的 -->
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="N.P. Brosowsky" content="Tone.js instrument library loader" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Styling -->
+    <link rel="stylesheet" href="nprogress.css" type="text/css" />
+    <!-- Document Title
+	============================================= -->
+    <title>ToneJS-Instruments Demo</title>
+  </head>
+
+  <body>
+    <style type="text/css">
+      body {
+        height: 100vh;
+        width: 100vw;
+        font-family: Helvetica, arial;
+        font-size: 16px;
+      }
+
+      #content {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        display: none;
+      }
+
+      #Keyboard {
+        margin: 3px !important;
+      }
+
+      #start_btn {
+        margin: 10px 0 10px 0;
+        padding: 5px;
+      }
+    </style>
+    <div id="content">
+      <h3 id="loading">Loading...</h3>
+      <div class="container">
+        <h1>Tone.js-Instruments</h1>
+        <p>
+          Loads four random instruments from the list. Refresh for different
+          instruments.
+        </p>
+        <div id="Selector"></div>
+        <button id="start_btn">start training</button>
+        <br />
+        <div id="Keyboard"></div>
+      </div>
+    </div>
+    <script type="text/javascript" src="external-js/nprogress.js"></script>
+    <script type="text/javascript" src="external-js/NexusUI.js"></script>
+    <script type="text/javascript" src="external-js/Tone.js"></script>
+    <script type="text/javascript" src="Tonejs-Instruments.js"></script>
+
+    <script>
+      /* const def*/
+      const LOW_NOTE = 36;
+      const HIGH_NOTE = 72;
+      const TRAIN_NOTE_NUM = 4;
+      const NOTE_DURATION = 1;
+
+      const UP = "↑";
+      const DOWN = "↓";
+
+      NProgress.start();
+      // load samples / choose 4 random instruments from the list //
+      chooseFour = [
+        "piano",
+        "bass-electric",
+        "bassoon",
+        "cello",
+        "clarinet",
+        "contrabass",
+        "flute",
+        "french-horn",
+        "guitar-acoustic",
+        "guitar-electric",
+        "guitar-nylon",
+        "harmonium",
+        "harp",
+        "organ",
+        "saxophone",
+        "trombone",
+        "trumpet",
+        "tuba",
+        "violin",
+        "xylophone",
+      ];
+      shuffle(chooseFour);
+      chooseFour = chooseFour.slice(0, 4);
+
+      var samples = SampleLibrary.load({
+        instruments: chooseFour,
+        baseUrl: "samples/",
+      });
+
+      var current;
+      // show keyboard on load //
+      Tone.Buffer.on("load", function () {
+        document.querySelector(".container").style.display = "block";
+        document.querySelector("#loading").style.display = "none";
+        NProgress.done();
+
+        // loop through instruments and set release, connect to master output
+        for (var property in samples) {
+          if (samples.hasOwnProperty(property)) {
+            console.log(samples[property]);
+            samples[property].release = 0.5;
+            samples[property].toMaster();
+          }
+        }
+
+        current = samples[chooseFour[0]];
+
+        select.on("change", function (v) {
+          current = samples[v.value];
+        });
+      });
+      // show error message on loading error //
+      Tone.Buffer.on("error", function () {
+        document.querySelector("#loading").innerHTML =
+          "I'm sorry, there has been an error loading the samples.";
+      });
+
+      // create Nexus UI //
+      Nexus.colors.accent = "#E0E0E0";
+
+      var select = new Nexus.Select("#Selector", {
+        size: [300, 30],
+        options: Object.keys(samples),
+      });
+
+      var keyboardUI = new Nexus.Piano("#Keyboard", {
+        size: [1000, 125],
+        mode: "button", // 'button', 'toggle', or 'impulse'
+        lowNote: LOW_NOTE,
+        highNote: HIGH_NOTE,
+      });
+
+      keyboardUI.on("change", function (note) {
+        console.log(note);
+        console.log(Tone.Frequency(note.note, "midi").toNote());
+        if (note.state === true) {
+          current.triggerAttack(Tone.Frequency(note.note, "midi").toNote());
+        } else if (note.state === false) {
+          current.triggerRelease(Tone.Frequency(note.note, "midi").toNote());
+        }
+      });
+
+      /* ear training */
+      let noteList = [];
+      let answerList = [];
+      // TODO: change prettier setting format
+      // TODO: pick a random current instrument each question
+      const startBtn = document.querySelector("#start_btn");
+      startBtn.addEventListener("click", () => {
+        console.log("clicked!!!");
+
+        for (let i = 0; i < TRAIN_NOTE_NUM; i++) {
+          noteList.push(Nexus.ri(LOW_NOTE, HIGH_NOTE));
+        }
+        console.log(noteList);
+
+        answerList = getAnswerList(noteList);
+        console.log(answerList);
+
+        playQuestion(noteList);
+        // TODO: 接收答案、判断答案、播放正确答案
+        clearLastQuestion();
+      });
+
+      // helper function //
+      function getAnswerList(noteList) {
+        let lastNote;
+        const answerList = [];
+        noteList.forEach((note) => {
+          // init
+          if (!lastNote) {
+            lastNote = note;
+            return;
+          } else {
+            answerList.push(lastNote > note ? DOWN : UP);
+            lastNote = note;
+          }
+        });
+        return answerList;
+      }
+
+      function playQuestion(noteList) {
+        const now = Tone.now();
+        for (let i = 0; i < noteList.length; i++) {
+          current.triggerAttackRelease(
+            Tone.Frequency(noteList[i], "midi").toNote(),
+            NOTE_DURATION,
+            now + NOTE_DURATION * i
+          );
+        }
+      }
+
+      function clearLastQuestion() {
+        noteList = [];
+        answerList = [];
+      }
+
+      function shuffle(a) {
+        var j, x, i;
+        for (i = a.length - 1; i > 0; i--) {
+          j = Math.floor(Math.random() * (i + 1));
+          x = a[i];
+          a[i] = a[j];
+          a[j] = x;
+        }
+      }
+    </script>
+  </body>
+</html>
