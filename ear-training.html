@@ -38,13 +38,17 @@
         margin: 3px !important;
       }
 
-      #start_btn {
+      .question_btn {
         margin: 10px 0 10px 0;
         padding: 10px;
         color: rgb(51, 51, 51);
         border: none;
+        display: inline-block;
       }
 
+      #note_num_select {
+        display: inline-block;
+      }
     </style>
     <div id="content">
       <h3 id="loading">Loading...</h3>
@@ -55,7 +59,14 @@
           instruments.
         </p>
         <div id="Selector"></div>
-        <button id="start_btn">start training</button>
+
+        <button id="start_btn" class="question_btn">start training</button>
+        <button id="replay_btn" class="question_btn">replay</button>
+        <button id="play_answer_btn" class="question_btn">play answer</button>
+        <div id="note_select_container">
+          <span>choose note num: </span>
+          <div id="note_num_select"></div>
+        </div>
         <br />
         <div id="Keyboard"></div>
       </div>
@@ -69,11 +80,13 @@
       /* const def*/
       const LOW_NOTE = 36;
       const HIGH_NOTE = 72;
-      const TRAIN_NOTE_NUM = 4;
       const NOTE_DURATION = 1;
+      const MAX_NOTE_NUM = 10;
+      const MIN_NOTE_NUM = 2;
 
       const UP = "↑";
       const DOWN = "↓";
+      const EQUAL = "=";
 
       NProgress.start();
       // load samples / choose 4 random instruments from the list //
@@ -107,7 +120,8 @@
         baseUrl: "samples/",
       });
 
-      var current;
+      var currentInst;
+      let currentNoteNum;
       // show keyboard on load //
       Tone.Buffer.on("load", function () {
         document.querySelector(".container").style.display = "block";
@@ -123,10 +137,14 @@
           }
         }
 
-        current = samples[chooseFour[0]];
+        currentInst = samples[chooseFour[0]];
+        InstSelect.on("change", function (v) {
+          currentInst = samples[v.value];
+        });
 
-        select.on("change", function (v) {
-          current = samples[v.value];
+        currentNoteNum = MIN_NOTE_NUM;
+        noteNumSelect.on("change", (v) => {
+          currentNoteNum = v.value;
         });
       });
       // show error message on loading error //
@@ -138,9 +156,17 @@
       // create Nexus UI //
       Nexus.colors.accent = "#E0E0E0";
 
-      var select = new Nexus.Select("#Selector", {
+      var InstSelect = new Nexus.Select("#Selector", {
         size: [300, 30],
         options: Object.keys(samples),
+      });
+
+      let noteNumSelect = new Nexus.Select("#note_num_select", {
+        size: [200, 30],
+        options: Array.from(
+          { length: MAX_NOTE_NUM - 1 },
+          (_, index) => index + MIN_NOTE_NUM
+        ),
       });
 
       var keyboardUI = new Nexus.Piano("#Keyboard", {
@@ -154,9 +180,11 @@
         console.log(note);
         console.log(Tone.Frequency(note.note, "midi").toNote());
         if (note.state === true) {
-          current.triggerAttack(Tone.Frequency(note.note, "midi").toNote());
+          currentInst.triggerAttack(Tone.Frequency(note.note, "midi").toNote());
         } else if (note.state === false) {
-          current.triggerRelease(Tone.Frequency(note.note, "midi").toNote());
+          currentInst.triggerRelease(
+            Tone.Frequency(note.note, "midi").toNote()
+          );
         }
       });
 
@@ -165,11 +193,19 @@
       let answerList = [];
       // TODO: change prettier setting format
       // TODO: pick a random current instrument each question
+      const replayBtn = document.querySelector("#replay_btn");
+      replayBtn.addEventListener("click", () => playQuestion(noteList));
+      const playAnswerBtn = document.querySelector("#play_answer_btn");
+      playAnswerBtn.addEventListener("click", () =>
+        playQuestion(noteList, true)
+      );
+
       const startBtn = document.querySelector("#start_btn");
       startBtn.addEventListener("click", () => {
+        clearLastQuestion();
         console.log("clicked!!!");
 
-        for (let i = 0; i < TRAIN_NOTE_NUM; i++) {
+        for (let i = 0; i < currentNoteNum; i++) {
           noteList.push(Nexus.ri(LOW_NOTE, HIGH_NOTE));
         }
         console.log(noteList);
@@ -179,7 +215,6 @@
 
         playQuestion(noteList);
         // TODO: 接收答案、判断答案、播放正确答案
-        clearLastQuestion();
       });
 
       // helper function //
@@ -192,21 +227,36 @@
             lastNote = note;
             return;
           } else {
-            answerList.push(lastNote > note ? DOWN : UP);
+            lastNote === note
+              ? answerList.push(EQUAL)
+              : answerList.push(lastNote > note ? DOWN : UP);
             lastNote = note;
           }
         });
         return answerList;
       }
 
-      function playQuestion(noteList) {
+      function playQuestion(noteList, showNote = false) {
         const now = Tone.now();
-        for (let i = 0; i < noteList.length; i++) {
-          current.triggerAttackRelease(
-            Tone.Frequency(noteList[i], "midi").toNote(),
-            NOTE_DURATION,
-            now + NOTE_DURATION * i
-          );
+        if (showNote) {
+          // 按顺序显示每个音符
+          // TODO: 太丑了……要换实现方法……
+          for (let i = 0; i < noteList.length; i++) {
+            setTimeout(() => {
+              keyboardUI.toggleKey(noteList[i], true);
+              setTimeout(() => {
+                keyboardUI.toggleKey(noteList[i], false);
+              }, NOTE_DURATION * 1000); // 一段时间后取消显示
+            }, i * NOTE_DURATION * 1000); // 每隔 NOTE_DURATION 的时间显示下一个音符
+          }
+        } else {
+          for (let i = 0; i < noteList.length; i++) {
+            currentInst.triggerAttackRelease(
+              Tone.Frequency(noteList[i], "midi").toNote(),
+              NOTE_DURATION,
+              now + NOTE_DURATION * i
+            );
+          }
         }
       }
 
