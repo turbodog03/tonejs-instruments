@@ -63,10 +63,20 @@
         <button id="start_btn" class="question_btn">start training</button>
         <button id="replay_btn" class="question_btn">replay</button>
         <button id="play_answer_btn" class="question_btn">play answer</button>
+
         <div id="note_select_container">
           <span>choose note num: </span>
           <div id="note_num_select"></div>
         </div>
+        
+        <div id="answer_container">
+            <span>answer:</span>
+            <span id="answer"></span>
+            <button id="add_answer_up" class="question_btn">↑</button>
+            <button id="add_answer_down" class="question_btn">↓</button>
+            <button id="add_answer_equal" class="question_btn">=</button>
+        </div>
+
         <br />
         <div id="Keyboard"></div>
       </div>
@@ -211,7 +221,7 @@
 
       const startBtn = document.querySelector("#start_btn");
       startBtn.addEventListener("click", () => {
-        clearLastQuestion();
+        clear();
         console.log("clicked!!!");
 
         for (let i = 0; i < currentNoteNum; i++) {
@@ -227,6 +237,17 @@
         playAnswerBtn.disabled = false;
         // TODO: 接收答案、判断答案、播放正确答案
       });
+
+      const answerDiv = document.querySelector('#answer')
+      document.querySelector('#add_answer_up').addEventListener('click', ()=>{
+        answerDiv.innerHTML += '↑'
+      })
+      document.querySelector('#add_answer_down').addEventListener('click', ()=>{
+        answerDiv.innerHTML += '↓'
+      })
+      document.querySelector('#add_answer_equal').addEventListener('click', ()=>{
+        answerDiv.innerHTML += '='
+      })
 
       // helper function //
       function getAnswerList(noteList) {
@@ -271,9 +292,10 @@
         }
       }
 
-      function clearLastQuestion() {
+      function clear() {
         noteList = [];
         answerList = [];
+        answerDiv.innerHTML = ''
       }
 
       function shuffle(a) {
