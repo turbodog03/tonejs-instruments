@@ -169,8 +169,15 @@
         ),
       });
 
+      // 获取屏幕宽度
+      const screenWidth = window.innerWidth;
+
+      // 计算键盘的宽度
+      const keyboardWidth = screenWidth * 0.9; // 90% 的屏幕宽度
+
+      // height is 1/5 width
       var keyboardUI = new Nexus.Piano("#Keyboard", {
-        size: [1000, 125],
+        size: [keyboardWidth, keyboardWidth * 0.2],
         mode: "button", // 'button', 'toggle', or 'impulse'
         lowNote: LOW_NOTE,
         highNote: HIGH_NOTE,
@@ -194,8 +201,10 @@
       // TODO: change prettier setting format
       // TODO: pick a random current instrument each question
       const replayBtn = document.querySelector("#replay_btn");
+      replayBtn.disabled = true;
       replayBtn.addEventListener("click", () => playQuestion(noteList));
       const playAnswerBtn = document.querySelector("#play_answer_btn");
+      playAnswerBtn.disabled = true;
       playAnswerBtn.addEventListener("click", () =>
         playQuestion(noteList, true)
       );
@@ -214,6 +223,8 @@
         console.log(answerList);
 
         playQuestion(noteList);
+        replayBtn.disabled = false;
+        playAnswerBtn.disabled = false;
         // TODO: 接收答案、判断答案、播放正确答案
       });
 
