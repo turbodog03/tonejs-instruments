@@ -49,6 +49,13 @@
       #note_num_select {
         display: inline-block;
       }
+
+      #judge {
+        height: 20px;
+        width: 40px;
+        border: 1px solid #f38500
+      }
+
     </style>
     <div id="content">
       <h3 id="loading">Loading...</h3>
@@ -75,6 +82,10 @@
             <button id="add_answer_up" class="question_btn">↑</button>
             <button id="add_answer_down" class="question_btn">↓</button>
             <button id="add_answer_equal" class="question_btn">=</button>
+            <button id="answer_clear" class="question_btn">x</button>
+            <div>
+              <div id="judge"></div>
+            </div>
         </div>
 
         <br />
@@ -238,15 +249,23 @@
         // TODO: 接收答案、判断答案、播放正确答案
       });
 
+      const judgeDiv = document.querySelector('#judge')
+
       const answerDiv = document.querySelector('#answer')
       document.querySelector('#add_answer_up').addEventListener('click', ()=>{
         answerDiv.innerHTML += '↑'
+        judge()
       })
       document.querySelector('#add_answer_down').addEventListener('click', ()=>{
         answerDiv.innerHTML += '↓'
+        judge()
       })
       document.querySelector('#add_answer_equal').addEventListener('click', ()=>{
         answerDiv.innerHTML += '='
+        judge()
+      })
+      document.querySelector('#answer_clear').addEventListener('click', ()=>{
+        answerDiv.innerHTML = ''
       })
 
       // helper function //
@@ -268,6 +287,8 @@
         return answerList;
       }
 
+      // TODO: 1. forbid any operation when play back. 2. active play btns only after play is done
+      // both need a play finish callback/state
       function playQuestion(noteList, showNote = false) {
         const now = Tone.now();
         if (showNote) {
@@ -292,10 +313,36 @@
         }
       }
 
+      function judge(){
+        // answer not finish
+
+        if(answerDiv.innerHTML.length < answerList.length) return ;
+        console.log(`judge!: 
+        answerDiv.innerHtml: ${answerDiv.innerHTML}
+        answerList: ${answerList.join('')}
+        `)
+
+        let answerRight = false;
+        if(answerDiv.innerHTML === answerList.join('')){
+          // right answer
+          answerRight = true
+          judgeDiv.style.backgroundColor = '#6ae673'
+        }
+        else{
+          answerRight = false
+          answerDiv.innerHTML = ''
+          judgeDiv.style.backgroundColor = '#ff503e'
+        }
+        console.log(answerRight)
+        // no matter wrong or right, play back. only show correct answer when answer right
+        playQuestion(noteList, answerRight)
+      }
+
       function clear() {
         noteList = [];
         answerList = [];
         answerDiv.innerHTML = ''
+        judgeDiv.style.backgroundColor = 'white'
       }
 
       function shuffle(a) {
