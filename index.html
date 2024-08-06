@@ -20,6 +20,8 @@
         width: 100vw;
         font-family: Helvetica, arial;
         font-size: 16px;
+        /* hide scroll bar */
+        overflow: hidden;
       }
 
       #content {
@@ -53,9 +55,8 @@
       #judge {
         height: 20px;
         width: 40px;
-        border: 1px solid #f38500
+        border: 1px solid #f38500;
       }
-
     </style>
     <div id="content">
       <h3 id="loading">Loading...</h3>
@@ -67,7 +68,9 @@
         </p>
         <div id="Selector"></div>
 
-        <button id="start_btn" class="question_btn">start training</button>
+        <button id="start_btn" class="question_btn" title="Keyboard: Enter">
+          start training
+        </button>
         <button id="replay_btn" class="question_btn">replay</button>
         <button id="play_answer_btn" class="question_btn">play answer</button>
 
@@ -75,17 +78,37 @@
           <span>choose note num: </span>
           <div id="note_num_select"></div>
         </div>
-        
+
         <div id="answer_container">
-            <span>answer:</span>
-            <span id="answer"></span>
-            <button id="add_answer_up" class="question_btn">↑</button>
-            <button id="add_answer_down" class="question_btn">↓</button>
-            <button id="add_answer_equal" class="question_btn">=</button>
-            <button id="answer_clear" class="question_btn">x</button>
-            <div>
-              <div id="judge"></div>
-            </div>
+          <span>answer:</span>
+          <span id="answer"></span>
+          <button
+            id="add_answer_up"
+            class="question_btn"
+            title="Keyboard: upArrow"
+          >
+            ↑
+          </button>
+          <button
+            id="add_answer_down"
+            class="question_btn"
+            title="Keyboard: downArrow"
+          >
+            ↓
+          </button>
+          <button
+            id="add_answer_equal"
+            class="question_btn"
+            title="Keyboard: ="
+          >
+            =
+          </button>
+          <button id="answer_clear" class="question_btn" title="Keyboard: Esc">
+            x
+          </button>
+          <div>
+            <div id="judge"></div>
+          </div>
         </div>
 
         <br />
@@ -183,7 +206,7 @@
       });
 
       let noteNumSelect = new Nexus.Select("#note_num_select", {
-        size: [200, 30],
+        size: [150, 30],
         options: Array.from(
           { length: MAX_NOTE_NUM - 1 },
           (_, index) => index + MIN_NOTE_NUM
@@ -193,8 +216,8 @@
       // 获取屏幕宽度
       const screenWidth = window.innerWidth;
 
-      // 计算键盘的宽度
-      const keyboardWidth = screenWidth * 0.9; // 90% 的屏幕宽度
+      // 计算键盘的宽度, and set limit
+      const keyboardWidth = Math.min(screenWidth * 0.9, 1000); // 90% 的屏幕宽度
 
       // height is 1/5 width
       var keyboardUI = new Nexus.Piano("#Keyboard", {
@@ -232,8 +255,65 @@
 
       const startBtn = document.querySelector("#start_btn");
       startBtn.addEventListener("click", () => {
-        clear();
         console.log("clicked!!!");
+        startNewQuestion();
+      });
+
+      const judgeDiv = document.querySelector("#judge");
+
+      const answerDiv = document.querySelector("#answer");
+      document.querySelector("#add_answer_up").addEventListener("click", () => {
+        answerDiv.innerHTML += "↑";
+        judge();
+      });
+      document
+        .querySelector("#add_answer_down")
+        .addEventListener("click", () => {
+          answerDiv.innerHTML += "↓";
+          judge();
+        });
+      document
+        .querySelector("#add_answer_equal")
+        .addEventListener("click", () => {
+          answerDiv.innerHTML += "=";
+          judge();
+        });
+
+      document.querySelector("#answer_clear").addEventListener("click", () => {
+        answerDiv.innerHTML = "";
+      });
+
+      // 监听键盘事件
+      document.addEventListener("keydown", (event) => {
+        const key = event.key; // 获取按下的键的值
+
+        // 根据按下的键来判断添加什么内容到answerDiv，并调用judge函数
+        switch (key) {
+          // answer input
+          case "ArrowUp":
+            answerDiv.innerHTML += "↑";
+            break;
+          case "ArrowDown":
+            answerDiv.innerHTML += "↓";
+            break;
+          case "=":
+            answerDiv.innerHTML += "=";
+            break;
+          case "Escape":
+            answerDiv.innerHTML = "";
+          // new question
+          case "Enter":
+            startNewQuestion();
+          default:
+            return;
+        }
+        judge();
+      });
+
+      // helper function //
+      function startNewQuestion() {
+        clear();
+        console.log("new question!!!");
 
         for (let i = 0; i < currentNoteNum; i++) {
           noteList.push(Nexus.ri(LOW_NOTE, HIGH_NOTE));
@@ -246,29 +326,8 @@
         playQuestion(noteList);
         replayBtn.disabled = false;
         playAnswerBtn.disabled = false;
-        // TODO: 接收答案、判断答案、播放正确答案
-      });
+      }
 
-      const judgeDiv = document.querySelector('#judge')
-
-      const answerDiv = document.querySelector('#answer')
-      document.querySelector('#add_answer_up').addEventListener('click', ()=>{
-        answerDiv.innerHTML += '↑'
-        judge()
-      })
-      document.querySelector('#add_answer_down').addEventListener('click', ()=>{
-        answerDiv.innerHTML += '↓'
-        judge()
-      })
-      document.querySelector('#add_answer_equal').addEventListener('click', ()=>{
-        answerDiv.innerHTML += '='
-        judge()
-      })
-      document.querySelector('#answer_clear').addEventListener('click', ()=>{
-        answerDiv.innerHTML = ''
-      })
-
-      // helper function //
       function getAnswerList(noteList) {
         let lastNote;
         const answerList = [];
@@ -314,36 +373,35 @@
       }
 
       // TODO: add streak
-      function judge(){
+      function judge() {
         // answer not finish
 
-        if(answerDiv.innerHTML.length < answerList.length) return ;
+        if (answerDiv.innerHTML.length < answerList.length) return;
         console.log(`judge!: 
         answerDiv.innerHtml: ${answerDiv.innerHTML}
-        answerList: ${answerList.join('')}
-        `)
+        answerList: ${answerList.join("")}
+        `);
 
         let answerRight = false;
-        if(answerDiv.innerHTML === answerList.join('')){
+        if (answerDiv.innerHTML === answerList.join("")) {
           // right answer
-          answerRight = true
-          judgeDiv.style.backgroundColor = '#6ae673'
+          answerRight = true;
+          judgeDiv.style.backgroundColor = "#6ae673";
+        } else {
+          answerRight = false;
+          answerDiv.innerHTML = "";
+          judgeDiv.style.backgroundColor = "#ff503e";
         }
-        else{
-          answerRight = false
-          answerDiv.innerHTML = ''
-          judgeDiv.style.backgroundColor = '#ff503e'
-        }
-        console.log(answerRight)
+        console.log(answerRight);
         // no matter wrong or right, play back. only show correct answer when answer right
-        playQuestion(noteList, answerRight)
+        playQuestion(noteList, answerRight);
       }
 
       function clear() {
         noteList = [];
         answerList = [];
-        answerDiv.innerHTML = ''
-        judgeDiv.style.backgroundColor = 'white'
+        answerDiv.innerHTML = "";
+        judgeDiv.style.backgroundColor = "white";
       }
 
       function shuffle(a) {
