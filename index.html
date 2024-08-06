@@ -75,7 +75,7 @@
         <button id="play_answer_btn" class="question_btn">play answer</button>
 
         <div id="note_select_container">
-          <span>choose note num: </span>
+          <span title="using arrow keys to adjust">choose note num : </span>
           <div id="note_num_select"></div>
         </div>
 
@@ -239,9 +239,10 @@
         }
       });
 
-      /* ear training */
+      /* ear training init*/
       let noteList = [];
       let answerList = [];
+      let isPlaying = false;
       // TODO: change prettier setting format
       // TODO: pick a random current instrument each question
       const replayBtn = document.querySelector("#replay_btn");
@@ -262,53 +263,33 @@
       const judgeDiv = document.querySelector("#judge");
 
       const answerDiv = document.querySelector("#answer");
-      document.querySelector("#add_answer_up").addEventListener("click", () => {
+      const answerUpBtn = document.querySelector("#add_answer_up");
+      answerUpBtn.disabled = true;
+      answerUpBtn.addEventListener("click", () => {
         answerDiv.innerHTML += "↑";
         judge();
       });
-      document
-        .querySelector("#add_answer_down")
-        .addEventListener("click", () => {
-          answerDiv.innerHTML += "↓";
-          judge();
-        });
-      document
-        .querySelector("#add_answer_equal")
-        .addEventListener("click", () => {
-          answerDiv.innerHTML += "=";
-          judge();
-        });
+      const answerDownBtn = document.querySelector("#add_answer_down");
+      answerDownBtn.disabled = true;
+      answerDownBtn.addEventListener("click", () => {
+        answerDiv.innerHTML += "↓";
+        judge();
+      });
+      const answerEqualBtn = document.querySelector("#add_answer_equal");
+      answerEqualBtn.disabled = true;
+      answerEqualBtn.addEventListener("click", () => {
+        answerDiv.innerHTML += "=";
+        judge();
+      });
 
-      document.querySelector("#answer_clear").addEventListener("click", () => {
+      const answerClearBtn = document.querySelector("#answer_clear");
+      answerClearBtn.disabled = true;
+      answerClearBtn.addEventListener("click", () => {
         answerDiv.innerHTML = "";
       });
 
       // 监听键盘事件
-      document.addEventListener("keydown", (event) => {
-        const key = event.key; // 获取按下的键的值
-
-        // 根据按下的键来判断添加什么内容到answerDiv，并调用judge函数
-        switch (key) {
-          // answer input
-          case "ArrowUp":
-            answerDiv.innerHTML += "↑";
-            break;
-          case "ArrowDown":
-            answerDiv.innerHTML += "↓";
-            break;
-          case "=":
-            answerDiv.innerHTML += "=";
-            break;
-          case "Escape":
-            answerDiv.innerHTML = "";
-          // new question
-          case "Enter":
-            startNewQuestion();
-          default:
-            return;
-        }
-        judge();
-      });
+      document.addEventListener("keydown", handleKeyDown);
 
       // helper function //
       function startNewQuestion() {
@@ -324,8 +305,6 @@
         console.log(answerList);
 
         playQuestion(noteList);
-        replayBtn.disabled = false;
-        playAnswerBtn.disabled = false;
       }
 
       function getAnswerList(noteList) {
@@ -346,10 +325,10 @@
         return answerList;
       }
 
-      // TODO: 1. forbid any operation when play back. 2. active play btns only after play is done
       // both need a play finish callback/state
       function playQuestion(noteList, showNote = false) {
         const now = Tone.now();
+        isPlaying = true;
         if (showNote) {
           // 按顺序显示每个音符
           // TODO: 太丑了……要换实现方法……
@@ -369,6 +348,84 @@
               now + NOTE_DURATION * i
             );
           }
+        }
+        // 播放完成前disable control
+        disableControls();
+        // 播放完成后的回调函数
+        setTimeout(() => {
+          console.log(`play finish! `);
+          isPlaying = false;
+          enableControls(); // 启用按钮和键盘事件监听
+        }, noteList.length * NOTE_DURATION * 1000); // 等待所有音符显示完毕
+      }
+
+      // 禁用按钮和键盘事件监听
+      function disableControls() {
+        document.querySelectorAll(".question_btn").forEach((btn) => {
+          btn.disabled = true;
+        });
+        document.removeEventListener("keydown", handleKeyDown);
+      }
+
+      // 启用按钮和键盘事件监听
+      function enableControls() {
+        document.querySelectorAll(".question_btn").forEach((btn) => {
+          btn.disabled = false;
+        });
+        document.addEventListener("keydown", handleKeyDown);
+      }
+
+      // shortcuts
+      function handleKeyDown(e) {
+        // TODO: only ban control keys, not answer keys when playing
+        console.log(`keydown, isPlaying: ${isPlaying} key: ${e.key}`);
+        if (isPlaying) {
+          return;
+        }
+        const key = e.key; // 获取按下的键的值
+        // 根据按下的键来判断添加什么内容到answerDiv，并调用judge函数
+        switch (key) {
+          // answer input
+          case "ArrowUp":
+            answerDiv.innerHTML += "↑";
+            judge();
+            break;
+          case "ArrowDown":
+            answerDiv.innerHTML += "↓";
+            judge();
+            break;
+          case "=":
+            answerDiv.innerHTML += "=";
+            judge();
+            break;
+          case "Escape":
+            answerDiv.innerHTML = "";
+            break;
+          case "Backspace":
+            // 删除answerDiv的最后一个字符
+            if (answerDiv.innerHTML.length > 0) {
+              answerDiv.innerHTML = answerDiv.innerHTML.slice(0, -1);
+            }
+            break;
+          // adjust note num
+          case "ArrowLeft":
+            if (currentNoteNum > MIN_NOTE_NUM) {
+              currentNoteNum = parseInt(currentNoteNum) -1
+              noteNumSelect.value = String(currentNoteNum);
+            }
+            break;
+          case "ArrowRight":
+            if (currentNoteNum < MAX_NOTE_NUM) {
+              currentNoteNum = parseInt(currentNoteNum) +1
+              noteNumSelect.value = String(currentNoteNum);
+              console.log(`arrowRight!! currentNoteNum: ${currentNoteNum}, noteNumSelect: ${noteNumSelect.value}`)
+            }
+            break;
+          // new question
+          case "Enter":
+            startNewQuestion();
+          default:
+            return;
         }
       }
 
