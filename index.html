@@ -40,12 +40,26 @@
         margin: 3px !important;
       }
 
+      .operation_container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .operation_btn {
+        margin: 10px;
+        padding: 30px;
+      }
+
       .question_btn {
         margin: 10px 0 10px 0;
         padding: 10px;
+        display: inline-block;
+      }
+
+      button {
         color: rgb(51, 51, 51);
         border: none;
-        display: inline-block;
       }
 
       #note_num_select {
@@ -67,12 +81,13 @@
           instruments.
         </p>
         <div id="Selector"></div>
-
-        <button id="start_btn" class="question_btn" title="Keyboard: Enter">
-          start training
-        </button>
-        <button id="replay_btn" class="question_btn">replay</button>
-        <button id="play_answer_btn" class="question_btn">play answer</button>
+        <div class="question_btn_container">
+          <button id="start_btn" class="question_btn" title="Keyboard: Enter">
+            start training
+          </button>
+          <button id="replay_btn" class="question_btn">replay</button>
+          <button id="play_answer_btn" class="question_btn">play answer</button>
+        </div>
 
         <div id="note_select_container">
           <span title="using arrow keys to adjust">choose note num : </span>
@@ -82,30 +97,6 @@
         <div id="answer_container">
           <span>answer:</span>
           <span id="answer"></span>
-          <button
-            id="add_answer_up"
-            class="question_btn"
-            title="Keyboard: upArrow"
-          >
-            ↑
-          </button>
-          <button
-            id="add_answer_down"
-            class="question_btn"
-            title="Keyboard: downArrow"
-          >
-            ↓
-          </button>
-          <button
-            id="add_answer_equal"
-            class="question_btn"
-            title="Keyboard: ="
-          >
-            =
-          </button>
-          <button id="answer_clear" class="question_btn" title="Keyboard: Esc">
-            x
-          </button>
           <div>
             <div id="judge"></div>
           </div>
@@ -113,6 +104,33 @@
 
         <br />
         <div id="Keyboard"></div>
+
+        <div class="operation_container">
+          <button
+            id="add_answer_up"
+            class="operation_btn"
+            title="Keyboard: upArrow"
+          >
+            ↑
+          </button>
+          <button
+            id="add_answer_down"
+            class="operation_btn"
+            title="Keyboard: downArrow"
+          >
+            ↓
+          </button>
+          <button
+            id="add_answer_equal"
+            class="operation_btn"
+            title="Keyboard: ="
+          >
+            =
+          </button>
+          <button id="answer_clear" class="operation_btn" title="Keyboard: Esc">
+            x
+          </button>
+        </div>
       </div>
     </div>
     <script type="text/javascript" src="external-js/nprogress.js"></script>
@@ -364,12 +382,18 @@
         document.querySelectorAll(".question_btn").forEach((btn) => {
           btn.disabled = true;
         });
+        document.querySelectorAll(".operation_btn").forEach((btn) => {
+          btn.disabled = true;
+        });
         document.removeEventListener("keydown", handleKeyDown);
       }
 
       // 启用按钮和键盘事件监听
       function enableControls() {
         document.querySelectorAll(".question_btn").forEach((btn) => {
+          btn.disabled = false;
+        });
+        document.querySelectorAll(".operation_btn").forEach((btn) => {
           btn.disabled = false;
         });
         document.addEventListener("keydown", handleKeyDown);
@@ -410,15 +434,17 @@
           // adjust note num
           case "ArrowLeft":
             if (currentNoteNum > MIN_NOTE_NUM) {
-              currentNoteNum = parseInt(currentNoteNum) -1
+              currentNoteNum = parseInt(currentNoteNum) - 1;
               noteNumSelect.value = String(currentNoteNum);
             }
             break;
           case "ArrowRight":
             if (currentNoteNum < MAX_NOTE_NUM) {
-              currentNoteNum = parseInt(currentNoteNum) +1
+              currentNoteNum = parseInt(currentNoteNum) + 1;
               noteNumSelect.value = String(currentNoteNum);
-              console.log(`arrowRight!! currentNoteNum: ${currentNoteNum}, noteNumSelect: ${noteNumSelect.value}`)
+              console.log(
+                `arrowRight!! currentNoteNum: ${currentNoteNum}, noteNumSelect: ${noteNumSelect.value}`
+              );
             }
             break;
           // new question
